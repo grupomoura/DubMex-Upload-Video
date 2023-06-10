@@ -422,33 +422,38 @@ app.get('/video/resolutions', authenticate, async (req, res) => {
   }
 });
 
-// Função para baixar um vídeo individual
-app.get('/video/download', authenticate, async (req, res) => {
+// Rota para baixar um vídeo
+app.get('/video/download', async (req, res) => {
   const videoUrl = req.query.url;
   const resolution = req.query.resolution || '720p';
-
   try {
-    const videoInfo = await ytdl.getInfo(videoUrl);
-    const format = getBestFormat(videoInfo.formats, resolution);
-    const channelName = videoInfo.videoDetails.author.name;
+    const info = await ytdl.getInfo(videoUrl);
+    const formats = ytdl.filterFormats(info.formats, { quality: resolution });
 
-    const outputDir = getOutputDirectory(channelName);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    if (format) {
-      const outputFilePath = path.join(outputDir, `downloads/video/${channelName}/${videoInfo.videoDetails.title}`);
-      const videoStream = ytdl(videoUrl, { format });
-      videoStream.pipe(fs.createWriteStream(outputFilePath));
-
-      res.status(200).json({ message: 'Vídeo baixado com sucesso.' });
+    if (formats.length === 0) {
+      const closestFormat = ytdl.chooseFormat(info.formats, { quality: 'highest' });
+      if (closestFormat) {
+        console.log(`A resolução especificada não está disponível para este vídeo. Baixando na resolução mais próxima (${closestFormat.quality})...`);
+        const videoId = info.videoDetails.videoId;
+        const outputPath = `downloads/${info.videoDetails.ownerChannelName}/${videoId}.mp4`;
+        createDirectory(outputPath); // Criar diretórios recursivamente
+        await ytdl(videoUrl, { format: closestFormat })
+          .pipe(fs.createWriteStream(outputPath));
+        res.json({ downloadLink: `${req.protocol}://${req.get('host')}/api/video/file/${info.videoDetails.ownerChannelName}/${videoId}` });
+      } else {
+        res.status(400).json({ error: 'Não foi possível encontrar um formato de vídeo disponível para download.' });
+      }
     } else {
-      res.status(404).json({ error: 'A resolução especificada não está disponível para este vídeo.' });
+      console.log(`Baixando vídeo na resolução ${resolution}...`);
+      const videoId = info.videoDetails.videoId;
+      const outputPath = `downloads/${info.videoDetails.ownerChannelName}/${videoId}.mp4`;
+      createDirectory(outputPath); // Criar diretórios recursivamente
+      await ytdl(videoUrl, { format: formats[0] })
+        .pipe(fs.createWriteStream(outputPath));
+      res.json({ downloadLink: `${req.protocol}://${req.get('host')}/video/${info.videoDetails.ownerChannelName}/${videoId}` });
     }
   } catch (error) {
-    console.error('Ocorreu um erro ao baixar o vídeo:', error);
-    res.status(500).json({ error: 'Erro ao baixar o vídeo.' });
+    res.status(500).json({ error: 'Ocorreu um erro ao baixar o vídeo.' });
   }
 });
 
