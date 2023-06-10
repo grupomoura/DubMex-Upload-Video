@@ -12,6 +12,11 @@ Exemplo de cabeçalho da solicitação:
 api-key: SUA_CHAVE_DE_API
 ```
 
+## Para executar use:
+```
+npm run dev
+```
+
 ### Erros de autenticação
 
 Se a chave de API estiver ausente ou inválida, você receberá uma resposta de erro com o status 401 (Acesso não autorizado).
@@ -140,13 +145,9 @@ GET /download/channel-audio?url=https://youtube.com/channel/abcd1234
   ]
 }
 
-## API de Download de Vídeos
 
 Esta é uma API para baixar vídeos do YouTube. Ela oferece várias rotas para pesquisar vídeos, obter informações sobre resoluções disponíveis, baixar vídeos individuais, baixar uma lista de vídeos e baixar vídeos de uma playlist ou canal específico.
 
-### Requisições Autenticadas
-
-Todas as rotas da API requerem autenticação. Certifique-se de incluir um cabeçalho de autenticação válido em suas solicitações.
 
 ### Endpoints
 
