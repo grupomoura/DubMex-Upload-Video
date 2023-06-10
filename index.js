@@ -5,9 +5,10 @@ const ytsr = require('ytsr');
 const fs = require('fs');
 const app = express();
 
-
 const path = require('path');
 const apiKey = require('./config');
+const bodyParser = require('body-parser');
+app.use(bodyParser.json());
 
 const API_KEY = apiKey;
 
@@ -660,6 +661,63 @@ app.get('/downloaded/channel-video/:channel', authenticate, (req, res) => {
 
       res.status(200).json(fileLinks);
     }
+  });
+});
+
+
+// Função para listar pastas e subpastas dentro de um diretório
+function listarPastasRecursivo(directory) {
+  const folders = [];
+
+  const files = fs.readdirSync(directory);
+  files.forEach((file) => {
+    const filePath = path.join(directory, file);
+    const isDirectory = fs.statSync(filePath).isDirectory();
+    if (isDirectory) {
+      folders.push(file);
+      const subFolders = listarPastasRecursivo(filePath);
+      folders.push(...subFolders.map((subFolder) => path.join(file, subFolder)));
+    }
+  });
+
+  return folders;
+}
+
+// Rota para listar pastas e subpastas dentro da pasta "downloads"
+app.get('/list-folders', authenticate, (req, res) => {
+  const downloadsDirectory = path.join(__dirname, 'downloads');
+  const folders = listarPastasRecursivo(downloadsDirectory);
+  res.json({ folders });
+});
+
+// Função para deletar uma pasta e suas subpastas
+function deletarPastaRecursivo(directory) {
+  if (fs.existsSync(directory)) {
+    fs.readdirSync(directory).forEach((file) => {
+      const filePath = path.join(directory, file);
+      if (fs.lstatSync(filePath).isDirectory()) {
+        deletarPastaRecursivo(filePath);
+      } else {
+        fs.unlinkSync(filePath);
+      }
+    });
+    fs.rmdirSync(directory);
+  }
+}
+
+// Rota para deletar uma pasta
+app.delete('/delete-folder', authenticate, (req, res) => { 
+  const pastaPath = req.body.path; // O caminho da pasta a ser deletada é fornecido no corpo da requisição
+
+  if (!pastaPath) {
+    return res.status(400).json({
+      error: 'O campo "path" é obrigatório.'
+    });
+  }
+  deletarPastaRecursivo(pastaPath);
+
+  res.status(200).json({
+    message: 'Pasta deletada com sucesso!'
   });
 });
 
