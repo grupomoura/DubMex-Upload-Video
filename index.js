@@ -24,72 +24,6 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// Função para criar diretórios recursivamente
-function createDirectory(path) {
-  const directories = path.split('/');
-  let currentDirectory = '';
-  for (let i = 0; i < directories.length; i++) {
-    currentDirectory += directories[i] + '/';
-    if (!fs.existsSync(currentDirectory)) {
-      fs.mkdirSync(currentDirectory);
-    }
-  }
-}
-
-// Função para obter o diretório de saída para o canal
-function getOutputDirectory(channelName) {
-  const downloadsDirectory = path.join(__dirname, 'downloads');
-  const channelDirectory = path.join(downloadsDirectory, channelName);
-
-  return channelDirectory;
-}
-
-// Função para obter o formato com a resolução mais próxima
-function getBestFormat(formats, targetResolution) {
-  const resolutions = formats
-    .filter(format => format.hasVideo && format.qualityLabel)
-    .map(format => format.qualityLabel);
-
-  const closestResolution = findClosestResolution(resolutions, targetResolution);
-
-  if (closestResolution) {
-    return formats.find(format => format.qualityLabel === closestResolution);
-  }
-
-  return null;
-}
-
-// Função para encontrar a resolução mais próxima
-function findClosestResolution(resolutions, targetResolution) {
-  const resolutionsMap = {
-    '144p': 144,
-    '240p': 240,
-    '360p': 360,
-    '480p': 480,
-    '720p': 720,
-    '1080p': 1080,
-    '1440p': 1440,
-    '2160p': 2160
-  };
-
-  const targetResolutionValue = resolutionsMap[targetResolution];
-
-  let closestResolution = null;
-  let closestDistance = Infinity;
-
-  for (const resolution of resolutions) {
-    const resolutionValue = resolutionsMap[resolution];
-    const distance = Math.abs(targetResolutionValue - resolutionValue);
-
-    if (distance < closestDistance) {
-      closestResolution = resolution;
-      closestDistance = distance;
-    }
-  }
-
-  return closestResolution;
-}
-
 // Define o diretório onde o arquivo index.html está localizado
 const publicDirectoryPath = path.join(__dirname, 'public');
 
@@ -353,9 +287,9 @@ app.get('/download/channel-audio', authenticate, async (req, res) => {
 });
 
 //Listar áudios gerados
-app.get('/downloaded/playlist/:channel', authenticate, (req, res) => {
+app.get('/downloaded/playlist-audio/:channel', authenticate, (req, res) => {
   const channel = req.params.channel;
-  const directoryPath = `./downloads/playlist/${channel}`;
+  const directoryPath = `./downloads/playlist-audios/${channel}`;
 
   fs.readdir(directoryPath, (error, files) => {
     if (error) {
@@ -374,9 +308,9 @@ app.get('/downloaded/playlist/:channel', authenticate, (req, res) => {
   });
 });
 
-app.get('/downloaded/channel/:channel', authenticate, (req, res) => {
+app.get('/downloaded/channel-audio/:channel', authenticate, (req, res) => {
   const channel = req.params.channel;
-  const directoryPath = `./downloads/channel/${channel}`;
+  const directoryPath = `./downloads/channel-audio/${channel}`;
 
   fs.readdir(directoryPath, (error, files) => {
     if (error) {
@@ -387,7 +321,7 @@ app.get('/downloaded/channel/:channel', authenticate, (req, res) => {
     } else {
       const fileLinks = files.map(file => ({
         fileName: file,
-        downloadUrl: `${req.protocol}://${req.get('host')}/downloaded/channel/${channel}/${file}`
+        downloadUrl: `${req.protocol}://${req.get('host')}/downloaded/channel-audio/${channel}/${file}`
       }));
 
       res.status(200).json(fileLinks);
@@ -684,6 +618,49 @@ app.get('/download/channel-video', authenticate, async (req, res) => {
       error: 'Ocorreu um erro ao processar o canal.'
     });
   }
+});
+
+//Listar vídeos gerados
+app.get('/downloaded/playlist-video/:channel', authenticate, (req, res) => {
+  const channel = req.params.channel;
+  const directoryPath = `./downloads/playlist-video/${channel}`;
+
+  fs.readdir(directoryPath, (error, files) => {
+    if (error) {
+      console.error(error);
+      res.status(500).json({
+        error: 'Ocorreu um erro ao obter a lista de arquivos.'
+      });
+    } else {
+      const fileLinks = files.map(file => ({
+        fileName: file,
+        downloadUrl: `${req.protocol}://${req.get('host')}/downloaded/playlist/${channel}/${file}`
+      }));
+
+      res.status(200).json(fileLinks);
+    }
+  });
+});
+
+app.get('/downloaded/channel-video/:channel', authenticate, (req, res) => {
+  const channel = req.params.channel;
+  const directoryPath = `./downloads/channel-video/${channel}`;
+
+  fs.readdir(directoryPath, (error, files) => {
+    if (error) {
+      console.error(error);
+      res.status(500).json({
+        error: 'Ocorreu um erro ao obter a lista de arquivos.'
+      });
+    } else {
+      const fileLinks = files.map(file => ({
+        fileName: file,
+        downloadUrl: `${req.protocol}://${req.get('host')}/downloaded/channel-audio/${channel}/${file}`
+      }));
+
+      res.status(200).json(fileLinks);
+    }
+  });
 });
 
 app.use('/download', express.static('downloads'));

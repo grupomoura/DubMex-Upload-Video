@@ -16,115 +16,264 @@ api-key: SUA_CHAVE_DE_API
 
 Se a chave de API estiver ausente ou inválida, você receberá uma resposta de erro com o status 401 (Acesso não autorizado).
 
-## Rotas
+## API de Download de Áudio
 
-### Baixar áudio de um vídeo do YouTube
+Esta é uma API para baixar áudio do YouTube. Ela oferece várias rotas para baixar áudio de vídeos individuais, baixar uma lista de áudios de vídeos e baixar áudios de playlists ou canais específicos.
 
-```
-GET /download/audio?url={URL_DO_VÍDEO}
-```
+### Endpoints
 
-Esta rota permite baixar o áudio de um vídeo do YouTube especificado pela URL. O áudio será salvo como um arquivo MP3.
-
-Parâmetros de consulta:
-
-- `url`: A URL do vídeo do YouTube.
-
-#### Exemplo de solicitação
+#### Baixar Áudio de um Vídeo
 
 ```
-GET /download/audio?url=https://www.youtube.com/watch?v=VIDEO_ID
-api-key: SUA_CHAVE_DE_API
+GET /download/audio
 ```
 
-#### Resposta de sucesso
+Este endpoint permite baixar o áudio de um vídeo do YouTube.
 
-Status: 200 OK
+**Parâmetros de consulta:**
+
+- `url` (obrigatório): URL do vídeo do YouTube.
+
+**Exemplo de solicitação:**
+
+```
+GET /download/audio?url=https://youtube.com/watch?v=abcd1234
+```
+
+**Resposta de exemplo:**
 
 ```json
 {
   "message": "Áudio baixado com sucesso!",
-  "downloadUrl": "https://seuhost.com/download/audio/VIDEO_ID.mp3"
+  "downloadUrl": "https://example.com/download/audio/abcd1234.mp3"
 }
 ```
 
-#### Resposta de erro
-
-Status: 400 Bad Request
-
-```json
-{
-  "error": "Não foi possível encontrar um formato de áudio com 128kbps."
-}
-```
-
-Status: 500 Internal Server Error
-
-```json
-{
-  "error": "Ocorreu um erro ao baixar o áudio."
-}
-```
-
-### Baixar áudios de uma lista de vídeos do YouTube
+#### Baixar Lista de Áudios de Vídeos
 
 ```
-GET /download/audio-list?urls={URLS_DOS_VÍDEOS}
+GET /download/audio-list
 ```
 
-Esta rota permite baixar os áudios de uma lista de vídeos do YouTube especificados pelas URLs. Os áudios serão salvos como arquivos MP3.
+Este endpoint permite baixar uma lista de áudios de vídeos do YouTube.
 
-Parâmetros de consulta:
+**Parâmetros de consulta:**
 
-- `urls`: As URLs dos vídeos do YouTube, separadas por vírgula.
+- `urls` (obrigatório): URLs dos vídeos do YouTube, separados por vírgulas.
 
-#### Exemplo de solicitação
+**Exemplo de solicitação:**
 
 ```
-GET /download/audio-list?urls=https://www.youtube.com/watch?v=VIDEO_ID_1,https://www.youtube.com/watch?v=VIDEO_ID_2
-api-key: SUA_CHAVE_DE_API
+GET /download/audio-list?urls=https://youtube.com/watch?v=abcd1234,https://youtube.com/watch?v=efgh5678
 ```
 
-#### Resposta de sucesso
-
-Status: 200 OK
+**Resposta de exemplo:**
 
 ```json
 {
   "message": "Áudios baixados com sucesso!",
   "downloadUrls": [
-    "https://seuhost.com/download/audio-list/VIDEO_ID_1.mp3",
-    "https://seuhost.com/download/audio-list/VIDEO_ID_2.mp3"
+    "https://example.com/download/audio/abcd1234.mp3",
+    "https://example.com/download/audio/efgh5678.mp3"
   ]
 }
 ```
 
-#### Resposta de erro
+#### Baixar Áudios de uma Playlist
 
-Status: 400 Bad Request
+```
+GET /download/playlist-audio
+```
+
+Este endpoint permite baixar áudios de uma playlist do YouTube.
+
+**Parâmetros de consulta:**
+
+- `url` (obrigatório): URL da playlist do YouTube.
+
+**Exemplo de solicitação:**
+
+```
+GET /download/playlist-audio?url=https://youtube.com/playlist?list=abcd1234
+```
+
+**Resposta de exemplo:**
 
 ```json
 {
-  "error": "Nenhum link de vídeo fornecido."
+  "message": "Áudios da playlist baixados com sucesso!",
+  "channelDir": "./downloads/playlist-audio/ChannelName",
+  "links": [
+    "https://example.com/download/playlist-audio/ChannelName/audio1.mp3",
+    "https://example.com/download/playlist-audio/ChannelName/audio2.mp3"
+  ]
 }
 ```
 
-Status: 500 Internal Server Error
+#### Baixar Áudios de um Canal
+
+```
+GET /download/channel-audio
+```
+
+Este endpoint permite baixar áudios de um canal do YouTube.
+
+**Parâmetros de consulta:**
+
+- `url` (obrigatório): URL do canal do YouTube.
+
+**Exemplo de solicitação:**
+
+```
+GET /download/channel-audio?url=https://youtube.com/channel/abcd1234
+```
+
+**Resposta de exemplo:**
 
 ```json
 {
-  "error": "Ocorreu um erro ao baixar o áudio para o vídeo: URL_DO_VÍDEO"
+  "message": "Áudios do canal baixados com sucesso!",
+  "channelDir": "./downloads/channel-audio/ChannelName",
+  "links
+
+## API de Download de Vídeos
+
+Esta é uma API para baixar vídeos do YouTube. Ela oferece várias rotas para pesquisar vídeos, obter informações sobre resoluções disponíveis, baixar vídeos individuais, baixar uma lista de vídeos e baixar vídeos de uma playlist ou canal específico.
+
+### Requisições Autenticadas
+
+Todas as rotas da API requerem autenticação. Certifique-se de incluir um cabeçalho de autenticação válido em suas solicitações.
+
+### Endpoints
+
+#### Pesquisar Vídeos
+
+```
+GET /search-videos
+```
+
+Este endpoint permite pesquisar vídeos no YouTube com base em uma consulta fornecida.
+
+**Parâmetros de consulta:**
+
+- `q` (obrigatório): A consulta de pesquisa.
+
+**Exemplo de solicitação:**
+
+```
+GET /search-videos?q=gatos
+```
+
+**Resposta de exemplo:**
+
+```json
+[
+  {
+    "title": "Vídeo de gatos engraçados",
+    "videoId": "abcd1234",
+    "url": "https://youtube.com/watch?v=abcd1234"
+  },
+  {
+    "title": "Compilação de gatos fofinhos",
+    "videoId": "efgh5678",
+    "url": "https://youtube.com/watch?v=efgh5678"
+  }
+]
+```
+
+#### Obter Resoluções de Vídeo
+
+```
+GET /video/resolutions
+```
+
+Este endpoint retorna uma lista de resoluções disponíveis para um vídeo do YouTube.
+
+**Parâmetros de consulta:**
+
+- `url` (obrigatório): URL do vídeo do YouTube.
+
+**Exemplo de solicitação:**
+
+```
+GET /video/resolutions?url=https://youtube.com/watch?v=abcd1234
+```
+
+**Resposta de exemplo:**
+
+```json
+[
+  {
+    "itag": "22",
+    "resolution": "720p",
+    "extension": "mp4"
+  },
+  {
+    "itag": "18",
+    "resolution": "360p",
+    "extension": "mp4"
+  }
+]
+```
+
+#### Baixar Vídeo
+
+```
+GET /download/video
+```
+
+Este endpoint permite baixar um vídeo do YouTube em uma resolução específica.
+
+**Parâmetros de consulta:**
+
+- `url` (obrigatório): URL do vídeo do YouTube.
+- `resolution` (opcional): A resolução desejada do vídeo. O padrão é "720p".
+
+**Exemplo de solicitação:**
+
+```
+GET /download/video?url=https://youtube.com/watch?v=abcd1234&resolution=720p
+```
+
+**Resposta de exemplo:**
+
+```json
+{
+  "message": "Vídeo baixado com sucesso!",
+  "downloadUrl": "https://example.com/download/video/abcd1234.mp4"
 }
 ```
 
-### Baixar áudios de uma playlist do YouTube
+#### Baixar Lista de Vídeos
 
 ```
-GET /download/playlist?url={URL_DA_PLAYLIST}
+GET /download/video-list
 ```
 
-Esta rota permite baixar os áudios de uma playlist do YouTube especificada pela URL. Os áudios serão salvos como arquivos MP3, organizados em uma pasta com o nome do canal.
+Este endpoint permite baixar uma lista de vídeos do YouTube em uma resolução específica.
 
-Parâmetros de consulta:
+**Parâmetros de consulta:**
 
-- `url`: A URL da
+- `urls` (obrigatório): URLs dos vídeos do YouTube, separados por vírgulas.
+- `resolution` (opcional): A resolução desejada dos vídeos. O padrão é "720p".
+
+**Exemplo de solicitação:**
+
+```
+GET /download/video-list?urls=https
+
+://youtube.com/watch?v=abcd1234,https://youtube.com/watch?v=efgh5678&resolution=720p
+```
+
+**Resposta de exemplo:**
+
+```json
+{
+  "message": "Vídeos baixados com sucesso!",
+  "downloadUrls": [
+    "https://example.com/download/video/abcd1234.mp4",
+    "https://example.com/download/video/efgh5678.mp4"
+  ]
+}
+```
+
