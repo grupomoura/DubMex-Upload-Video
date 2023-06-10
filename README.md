@@ -134,7 +134,11 @@ GET /download/channel-audio?url=https://youtube.com/channel/abcd1234
 {
   "message": "Áudios do canal baixados com sucesso!",
   "channelDir": "./downloads/channel-audio/ChannelName",
-  "links
+    "links": [
+      "http://localhost:3000/download/channel/James/7vvGJgLArIM.mp3",
+      "http://localhost:3000/download/channel/James/J0CJzGGsbG8.mp3"
+  ]
+}
 
 ## API de Download de Vídeos
 
