@@ -90,6 +90,14 @@ function findClosestResolution(resolutions, targetResolution) {
   return closestResolution;
 }
 
+// Define o diretório onde o arquivo index.html está localizado
+const publicDirectoryPath = path.join(__dirname, 'public');
+
+// Define a rota para a página de boas-vindas
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicDirectoryPath, 'index.html'));
+});
+
 // Requisições de áudio
 app.get('/download/audio', authenticate, async (req, res) => {
   const youtubeUrl = req.query.url;
@@ -138,7 +146,7 @@ app.get('/download/audio', authenticate, async (req, res) => {
   });
 });
 
-app.get('/download/audio-list/', authenticate, async (req, res) => {
+app.get('/download/audio-list', authenticate, async (req, res) => {
   const youtubeUrls = req.query.urls.split(',');
 
   if (!youtubeUrls || youtubeUrls.length === 0) {
@@ -196,7 +204,7 @@ app.get('/download/audio-list/', authenticate, async (req, res) => {
   }
 });
 
-app.get('/download/playlist', authenticate, async (req, res) => {
+app.get('/download/playlist-audio', authenticate, async (req, res) => {
   const youtubeUrl = req.query.url;
 
   try {
@@ -204,7 +212,7 @@ app.get('/download/playlist', authenticate, async (req, res) => {
 
     const channelName = playlist.items[0].author.name;
     const sanitizedChannelName = channelName.replace(/[^\w\s]/gi, '');
-    const channelDir = `./downloads/playlist/${sanitizedChannelName}`;
+    const channelDir = `./downloads/playlist-audio/${sanitizedChannelName}`;
 
     if (!fs.existsSync(channelDir)) {
       fs.mkdirSync(channelDir, { recursive: true });
@@ -269,7 +277,7 @@ app.get('/download/playlist', authenticate, async (req, res) => {
   }
 });
 
-app.get('/download/channel', authenticate, async (req, res) => {
+app.get('/download/channel-audio', authenticate, async (req, res) => {
   const youtubeUrl = req.query.url;
 
   try {
@@ -277,7 +285,7 @@ app.get('/download/channel', authenticate, async (req, res) => {
 
     const channelName = channel.author.name;
     const sanitizedChannelName = channelName.replace(/[^\w\s]/gi, '');
-    const channelDir = `./downloads/channel/${sanitizedChannelName}`;
+    const channelDir = `./downloads/channel-audio/${sanitizedChannelName}`;
 
     if (!fs.existsSync(channelDir)) {
       fs.mkdirSync(channelDir, { recursive: true });
@@ -422,79 +430,259 @@ app.get('/video/resolutions', authenticate, async (req, res) => {
   }
 });
 
-// Rota para baixar um vídeo
-app.get('/video/download', async (req, res) => {
-  const videoUrl = req.query.url;
+app.get('/download/video', authenticate, async (req, res) => {
+  const youtubeUrl = req.query.url;
   const resolution = req.query.resolution || '720p';
-  try {
-    const info = await ytdl.getInfo(videoUrl);
-    const formats = ytdl.filterFormats(info.formats, { quality: resolution });
+  const info = await ytdl.getInfo(youtubeUrl);
+  const format = ytdl.filterFormats(info.formats, 'videoonly').find(format => format.qualityLabel.includes(resolution));
 
-    if (formats.length === 0) {
-      const closestFormat = ytdl.chooseFormat(info.formats, { quality: 'highest' });
-      if (closestFormat) {
-        console.log(`A resolução especificada não está disponível para este vídeo. Baixando na resolução mais próxima (${closestFormat.quality})...`);
-        const videoId = info.videoDetails.videoId;
-        const outputPath = `downloads/${info.videoDetails.ownerChannelName}/${videoId}.mp4`;
-        createDirectory(outputPath); // Criar diretórios recursivamente
-        await ytdl(videoUrl, { format: closestFormat })
-          .pipe(fs.createWriteStream(outputPath));
-        res.json({ downloadLink: `${req.protocol}://${req.get('host')}/api/video/file/${info.videoDetails.ownerChannelName}/${videoId}` });
-      } else {
-        res.status(400).json({ error: 'Não foi possível encontrar um formato de vídeo disponível para download.' });
-      }
-    } else {
-      console.log(`Baixando vídeo na resolução ${resolution}...`);
-      const videoId = info.videoDetails.videoId;
-      const outputPath = `downloads/${info.videoDetails.ownerChannelName}/${videoId}.mp4`;
-      createDirectory(outputPath); // Criar diretórios recursivamente
-      await ytdl(videoUrl, { format: formats[0] })
-        .pipe(fs.createWriteStream(outputPath));
-      res.json({ downloadLink: `${req.protocol}://${req.get('host')}/video/${info.videoDetails.ownerChannelName}/${videoId}` });
+  if (!format) {
+    return res.status(400).json({
+      error: `Não foi possível encontrar um formato de vídeo com a resolução ${resolution}.`
+    });
+  }
+
+  const fileName = `${info.videoDetails.videoId}.mp4`;
+  const filePath = path.join(__dirname, `./downloads/video/${fileName}`);
+  const directoryPath = path.dirname(filePath);
+
+  if (!fs.existsSync(directoryPath)) {
+    fs.mkdirSync(directoryPath, { recursive: true });
+  }
+
+  if (fs.existsSync(filePath)) {
+    return res.status(200).json({
+      message: 'O vídeo já foi baixado.',
+      downloadUrl: `${req.protocol}://${req.get('host')}/download/video/${fileName}`
+    });
+  }
+
+  const writeStream = fs.createWriteStream(filePath);
+  const videoStream = ytdl(youtubeUrl, { format });
+
+  videoStream.on('error', (error) => {
+    console.error(error);
+    res.status(500).json({
+      error: 'Ocorreu um erro ao baixar o vídeo.'
+    });
+  });
+
+  videoStream.pipe(writeStream);
+
+  writeStream.on('finish', () => {
+    res.status(200).json({
+      message: 'Vídeo baixado com sucesso!',
+      downloadUrl: `${req.protocol}://${req.get('host')}/download/video/${fileName}`
+    });
+  });
+});
+
+app.get('/download/video-list', authenticate, async (req, res) => {
+  const youtubeUrls = req.query.urls.split(',');
+
+  if (!youtubeUrls || youtubeUrls.length === 0) {
+    return res.status(400).json({
+      error: 'Nenhum link de vídeo fornecido.'
+    });
+  }
+
+  const downloadUrls = [];
+
+  for (const youtubeUrl of youtubeUrls) {
+    const info = await ytdl.getInfo(youtubeUrl);
+    const resolution = req.query.resolution || '720p';
+    const format = ytdl.filterFormats(info.formats, 'videoonly').find(format => format.qualityLabel.includes(resolution));
+
+    if (!format) {
+      return res.status(400).json({
+        error: `Não foi possível encontrar um formato de vídeo com a resolução ${resolution} para o vídeo: ${youtubeUrl}`
+      });
     }
-  } catch (error) {
-    res.status(500).json({ error: 'Ocorreu um erro ao baixar o vídeo.' });
+
+    const fileName = `${info.videoDetails.videoId}.mp4`;
+    const filePath = path.join(__dirname, `./downloads/video-list/${fileName}`);
+    const directoryPath = path.dirname(filePath);
+
+    if (!fs.existsSync(directoryPath)) {
+      fs.mkdirSync(directoryPath, { recursive: true });
+    }
+
+    if (fs.existsSync(filePath)) {
+      downloadUrls.push(`${req.protocol}://${req.get('host')}/download/video-list/${fileName}`);
+      continue;
+    }
+
+    const writeStream = fs.createWriteStream(filePath);
+    const videoStream = ytdl(youtubeUrl, { format });
+
+    videoStream.on('error', (error) => {
+      console.error(error);
+      res.status(500).json({
+        error: `Ocorreu um erro ao baixar o vídeo: ${youtubeUrl}`
+      });
+    });
+
+    videoStream.pipe(writeStream);
+
+    writeStream.on('finish', () => {
+      downloadUrls.push(`${req.protocol}://${req.get('host')}/download/video-list/${fileName}`);
+      if (downloadUrls.length === youtubeUrls.length) {
+        res.status(200).json({
+          message: 'Vídeos baixados com sucesso!',
+          downloadUrls
+        });
+      }
+    });
   }
 });
 
-// Função para obter o caminho de saída do arquivo
-function getOutputPath(channelName, videoId) {
-  const outputPath = `downloads/video/${channelName}/${videoId}.mp4`;
-  return outputPath;
-}
+app.get('/download/playlist-video', authenticate, async (req, res) => {
+  const youtubeUrl = req.query.url;
 
-// Rota para baixar um vídeo
-app.get('/video/download', async (req, res) => {
-  const videoUrl = req.query.url;
-  const resolution = req.query.resolution || '720p';
   try {
-    const info = await ytdl.getInfo(videoUrl);
-    const formats = ytdl.filterFormats(info.formats, { quality: resolution });
+    const playlist = await ytpl(youtubeUrl);
 
-    if (formats.length === 0) {
-      const closestFormat = ytdl.chooseFormat(info.formats, { quality: 'highest' });
-      if (closestFormat) {
-        console.log(`A resolução especificada não está disponível para este vídeo. Baixando na resolução mais próxima (${closestFormat.quality})...`);
-        const videoId = info.videoDetails.videoId;
-        const outputPath = getOutputPath(info.videoDetails.ownerChannelName, videoId);
-        createDirectory(outputPath); // Criar diretórios recursivamente
-        await ytdl(videoUrl, { format: closestFormat })
-          .pipe(fs.createWriteStream(outputPath));
-        res.json({ downloadLink: `${req.protocol}://${req.get('host')}/video/${info.videoDetails.ownerChannelName}/${videoId}` });
-      } else {
-        res.status(400).json({ error: 'Não foi possível encontrar um formato de vídeo disponível para download.' });
-      }
-    } else {
-      console.log(`Baixando vídeo na resolução ${resolution}...`);
-      const videoId = info.videoDetails.videoId;
-      const outputPath = getOutputPath(info.videoDetails.ownerChannelName, videoId);
-      createDirectory(outputPath); // Criar diretórios recursivamente
-      await ytdl(videoUrl, { format: formats[0] })
-        .pipe(fs.createWriteStream(outputPath));
-      res.json({ downloadLink: `${req.protocol}://${req.get('host')}/video/${info.videoDetails.ownerChannelName}/${videoId}` });
+    const channelName = playlist.items[0].author.name;
+    const sanitizedChannelName = channelName.replace(/[^\w\s]/gi, '');
+    const channelDir = `./downloads/playlist-video/${sanitizedChannelName}`;
+
+    if (!fs.existsSync(channelDir)) {
+      fs.mkdirSync(channelDir, { recursive: true });
     }
+
+    const downloadPromises = playlist.items.map(async (item) => {
+      const videoId = ytdl.getVideoID(item.url);
+      const fileName = `${videoId}.mp4`;
+      const filePath = `${channelDir}/${fileName}`;
+
+      if (fs.existsSync(filePath)) {
+        console.log(`O vídeo "${videoId}" já foi baixado.`);
+        return filePath;
+      }
+
+      const info = await ytdl.getInfo(item.url);
+      const resolution = req.query.resolution || '720p';
+      const format = ytdl.filterFormats(info.formats, 'videoonly').find(format => format.qualityLabel.includes(resolution));
+
+      if (!format) {
+        throw new Error(`Não foi possível encontrar um formato de vídeo com a resolução ${resolution} para o vídeo "${info.videoDetails.title}".`);
+      }
+
+      const writeStream = fs.createWriteStream(filePath);
+      const videoStream = ytdl(item.url, { format });
+
+      videoStream.on('error', (error) => {
+        console.error(`Ocorreu um erro ao baixar o vídeo "${videoId}":`, error);
+      });
+
+      videoStream.pipe(writeStream);
+
+      return new Promise((resolve, reject) => {
+        writeStream.on('finish', () => {
+          console.log(`Vídeo "${videoId}" baixado com sucesso!`);
+          resolve(filePath);
+        });
+
+        writeStream.on('error', (error) => {
+          console.error(`Ocorreu um erro ao salvar o vídeo "${videoId}":`, error);
+          reject(error);
+        });
+      });
+    });
+
+    const downloadedFiles = await Promise.all(downloadPromises);
+    const existingFiles = downloadedFiles.filter(filePath => filePath);
+    const links = existingFiles.map(filePath => {
+      const fileName = filePath.split('/').pop();
+      return `${req.protocol}://${req.get('host')}/download/playlist/${sanitizedChannelName}/${fileName}`;
+    });
+
+    res.status(200).json({
+      message: `Vídeos da playlist "${playlist.title}" baixados com sucesso!`,
+      channelDir: channelDir,
+      links: links
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Ocorreu um erro ao baixar o vídeo.' });
+    console.error('Ocorreu um erro ao processar a playlist:', error);
+    res.status(500).json({
+      error: 'Ocorreu um erro ao processar a playlist.'
+    });
+  }
+});
+
+app.get('/download/channel-video', authenticate, async (req, res) => {
+  const youtubeUrl = req.query.url;
+
+  try {
+    const channel = await ytpl(youtubeUrl);
+
+    const channelName = channel.author.name;
+    const sanitizedChannelName = channelName.replace(/[^\w\s]/gi, '');
+    const channelDir = `./downloads/channel-video/${sanitizedChannelName}`;
+
+    if (!fs.existsSync(channelDir)) {
+      fs.mkdirSync(channelDir, { recursive: true });
+    }
+
+    const videoUrls = channel.items.map(item => item.shortUrl);
+
+    const downloadPromises = videoUrls.map(async (videoUrl) => {
+      const videoId = ytdl.getVideoID(videoUrl);
+      const fileName = `${videoId}.mp4`;
+      const filePath = `${channelDir}/${fileName}`;
+
+      if (fs.existsSync(filePath)) {
+        console.log(`O vídeo "${videoId}" já foi baixado.`);
+        return filePath;
+      }
+
+      const info = await ytdl.getInfo(videoUrl);
+      const resolution = req.query.resolution || '720p';
+      const format = ytdl.filterFormats(info.formats, 'videoonly').find(format => format.qualityLabel.includes(resolution));
+
+      if (!format) {
+        throw new Error(`Não foi possível encontrar um formato de vídeo com a resolução ${resolution} para o vídeo "${info.videoDetails.title}".`);
+      }
+
+      const writeStream = fs.createWriteStream(filePath);
+      const videoStream = ytdl(videoUrl, { format });
+
+      videoStream.on('error', (error) => {
+        console.error(`Ocorreu um erro ao baixar o vídeo "${videoId}":`, error);
+      });
+
+      videoStream.pipe(writeStream);
+
+      return new Promise((resolve, reject) => {
+        writeStream.on('finish', () => {
+          console.log(`Vídeo "${videoId}" baixado com sucesso!`);
+          resolve(filePath);
+        });
+
+        writeStream.on('error', (error) => {
+          console.error(`Ocorreu um erro ao salvar o vídeo "${videoId}":`, error);
+          reject(error);
+        });
+      });
+    });
+
+    const downloadedFiles = await Promise.all(downloadPromises);
+    const existingFiles = downloadedFiles.filter(filePath => filePath);
+    const links = existingFiles.map(filePath => {
+      const fileName = filePath.split('/').pop();
+      return `${req.protocol}://${req.get('host')}/download/channel/${sanitizedChannelName}/${fileName}`;
+    });
+
+    res.status(200).json({
+      message: `Vídeos do canal "${sanitizedChannelName}" baixados com sucesso!`,
+      channelDir: channelDir,
+      links: links
+    });
+  } catch (error) {
+    console.error('Ocorreu um erro ao processar o canal:', error);
+    res.status(500).json({
+      error: 'Ocorreu um erro ao processar o canal.'
+    });
   }
 });
 
