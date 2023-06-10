@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
 app.use("/", routes);
-// app.use("/api/", routes);  //for API backend
 
 app.use('/download', express.static('downloads'));
 // Configuração do middleware para fazer o parsing do corpo das requisições como JSON

@@ -36,7 +36,7 @@ channel_video.get('/download/channel-video', authenticate, async (req, res) => {
   
         const info = await ytdl.getInfo(videoUrl);
         const resolution = req.query.resolution || '720p';
-        const format = ytdl.filterFormats(info.formats, 'videoonly').find(format => format.qualityLabel.includes(resolution));
+        const format = ytdl.filterFormats(info.formats, 'videoandaudio').find(format => format.qualityLabel.includes(resolution));
   
         if (!format) {
           throw new Error(`Não foi possível encontrar um formato de vídeo com a resolução ${resolution} para o vídeo "${info.videoDetails.title}".`);

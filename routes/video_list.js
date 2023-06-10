@@ -25,7 +25,7 @@ video_list.get('/download/video-list', authenticate, async (req, res) => {
     for (const youtubeUrl of youtubeUrls) {
       const info = await ytdl.getInfo(youtubeUrl);
       const resolution = req.query.resolution || '720p';
-      const format = ytdl.filterFormats(info.formats, 'videoonly').find(format => format.qualityLabel.includes(resolution));
+      const format = ytdl.filterFormats(info.formats, 'videoandaudio').find(format => format.qualityLabel.includes(resolution));
   
       if (!format) {
         return res.status(400).json({
