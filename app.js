@@ -1,4 +1,3 @@
-"use strict";
 require("dotenv").config();
 
 const express = require("express");
@@ -17,7 +16,7 @@ var allowedOrigins = '*';
 } */
 
 const app = express();
-
+app.use(cors());
 app.use(helmet());
 /* app.use(cors(corsOptions)); */
 

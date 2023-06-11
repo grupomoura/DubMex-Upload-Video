@@ -14,8 +14,8 @@
   "author": "James Moura",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
+    "express": "^4.18.2",
     "helmet": "^4.6.0",
     "ytdl-core": "^4.11.4",
     "ytpl": "^2.3.0",

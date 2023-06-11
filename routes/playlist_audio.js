@@ -48,12 +48,17 @@ playlist_audio.get('/download/playlist-audio', authenticate, async (req, res) =>
         console.error(`Ocorreu um erro ao baixar o áudio "${videoId}":`, error);
       });
 
+      const startTime = Date.now(); // Captura o tempo de início do download
+
       videoStream.pipe(writeStream);
 
       return new Promise((resolve, reject) => {
         writeStream.on('finish', () => {
+          const endTime = Date.now(); // Captura o tempo de término do download
+          const timer = (endTime - startTime) / 1000; // Calcula o tempo do download em segundos
+
           console.log(`Áudio "${videoId}" baixado com sucesso!`);
-          resolve(filePath);
+          resolve(filePath, timer);
         });
 
         writeStream.on('error', (error) => {
@@ -63,17 +68,26 @@ playlist_audio.get('/download/playlist-audio', authenticate, async (req, res) =>
       });
     });
 
-    const downloadedFiles = await Promise.all(downloadPromises);
-    const existingFiles = downloadedFiles.filter(filePath => filePath);
-    const links = existingFiles.map(filePath => {
+    const downloadedFilesWithTimers = await Promise.all(downloadPromises);
+    const existingFiles = downloadedFilesWithTimers.filter(([filePath, timer]) => filePath);
+    const links = existingFiles.map(([filePath, timer]) => {
       const fileName = filePath.split('/').pop();
       return `${req.protocol}://${req.get('host')}/download/playlist/${sanitizedChannelName}/${fileName}`;
     });
 
+    const timers = existingFiles.map(([filePath, timer]) => ({
+      filePath: filePath,
+      timer: timer
+    }));
+
+    const totalTimer = timers.reduce((total, { timer }) => total + timer, 0);
+
     res.status(200).json({
       message: `Áudios da playlist "${playlist.title}" baixados com sucesso!`,
       channelDir: channelDir,
-      links: links
+      links: links,
+      timers: timers,
+      totalTimer: totalTimer
     });
   } catch (error) {
     console.error('Ocorreu um erro ao processar a playlist:', error);

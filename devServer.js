@@ -11,6 +11,6 @@ app.use('/download', express.static('downloads'));
 app.use(express.json());
 
 //start server locally
-app.listen(3000,function () {
-    console.log("Server started. Go to http://localhost:3000/");
+app.listen(5000,function () {
+    console.log("Server started. Go to http://localhost:5000/");
 });

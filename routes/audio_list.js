@@ -1,4 +1,4 @@
-//functionality of a route
+// functionality of a route
 const authenticate = require("../auth");
 const express = require('express');
 const ytdl = require('ytdl-core');
@@ -20,6 +20,8 @@ audio_list.get('/download/audio-list', authenticate, async (req, res) => {
   }
 
   const downloadUrls = [];
+  const timers = [];
+  let totalTimer = 0;
 
   for (const youtubeUrl of youtubeUrls) {
     const info = await ytdl.getInfo(youtubeUrl);
@@ -56,14 +58,28 @@ audio_list.get('/download/audio-list', authenticate, async (req, res) => {
       });
     });
 
+    const startTime = Date.now(); // Captura o tempo de início do download
+
     videoStream.pipe(writeStream);
 
     writeStream.on('finish', () => {
+      const endTime = Date.now(); // Captura o tempo de término do download
+      const timer = (endTime - startTime) / 1000; // Calcula o tempo do download em segundos
+
+      timers.push({
+        videoId: info.videoDetails.videoId,
+        timer: timer
+      });
+
+      totalTimer += timer;
+
       downloadUrls.push(`${req.protocol}://${req.get('host')}/download/audio-list/${fileName}`);
       if (downloadUrls.length === youtubeUrls.length) {
         res.status(200).json({
           message: 'Áudios baixados com sucesso!',
-          downloadUrls
+          downloadUrls,
+          timers,
+          totalTimer
         });
       }
     });

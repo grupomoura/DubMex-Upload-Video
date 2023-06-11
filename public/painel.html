@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Download de Áudio e Vídeo</title>
+  <style>
+    .button-container button.loading::after {
+      content: "";
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-left: 10px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      border-top-color: transparent;
+      border-right-color: transparent;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .button-container {
+      text-align: center;
+    }
+
+    .button-container button {
+      padding: 10px 20px;
+      font-size: 14px;
+      background-color: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .result-container {
+      margin-top: 40px;
+      border: 1px solid #ccc;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+
+    .result-container h2 {
+      margin-bottom: 10px;
+    }
+
+    .result-container p {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Download de Áudio e Vídeo</h1>
+  <div class="container">
+    <div class="form-group">
+      <label for="request-select">Selecione uma requisição:</label>
+      <select id="request-select">
+        <option value="/download/audio">Download de Áudio</option>
+        <option value="/download/playlist-audio">Download de Playlist de Áudio</option>
+        <option value="/download/channel-audio">Download de Canal de Áudio</option>
+        <option value="/download/audio-list">Download de Lista de Áudios</option>
+        <option value="/download/video">Download de Vídeo</option>
+        <option value="/download/playlist-video">Download de Playlist de Vídeo</option>
+        <option value="/download/channel-video">Download de Canal de Vídeo</option>
+        <option value="/download/video-list">Download de Lista de Vídeos</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="link-input">Insira o link do YouTube:</label>
+      <input type="text" id="link-input" placeholder="Link do YouTube" />
+    </div>
+    <div class="button-container">
+      <button onclick="download()">Baixar</button>
+    </div>
+    <div class="result-container" id="result-container">
+      <h2>Resultado</h2>
+      <p id="message"></p>
+      <p id="channelDir"></p>
+      <p id="links"></p>
+      <p id="timers"></p>
+      <p id="totalTimer"></p>
+    </div>
+  </div>
+
+  <script>
+    function download() {
+      const requestSelect = document.getElementById("request-select");
+      const linkInput = document.getElementById("link-input");
+      const resultContainer = document.getElementById("result-container");
+      const message = document.getElementById("message");
+      const channelDir = document.getElementById("channelDir");
+      const links = document.getElementById("links");
+      const timers = document.getElementById("timers");
+      const totalTimer = document.getElementById("totalTimer");
+      const button = document.querySelector("button");
+
+      const selectedRequest = requestSelect.value;
+      const youtubeUrl = linkInput.value.trim();
+
+      if (!youtubeUrl) {
+        message.textContent = "Insira um link do YouTube válido.";
+        resultContainer.style.display = "block";
+        return;
+      }
+
+      // Adiciona a classe 'loading' ao botão para mostrar a animação de "load"
+      button.classList.add("loading");
+
+      fetch(`http://localhost:5000${selectedRequest}?url=${encodeURIComponent(youtubeUrl)}`, {
+        headers: {
+          'api-key': 'a18d-4348-b06a-a6c120751839-$#212@341&',
+        },
+      })
+        .then((response) => response.text()) // Parse a resposta como texto
+        .then((data) => {
+          try {
+            const jsonData = JSON.parse(data); // Tentar fazer o parsing do JSON
+            if (jsonData.error) {
+              message.textContent = jsonData.error;
+            } else {
+              message.textContent = jsonData.message;
+              channelDir.textContent = `Diretório: ${jsonData.channelDir || ""}`;
+              links.textContent = `Links: ${jsonData.links && jsonData.links.length > 0 ? jsonData.links.join(", ") : ""}`;
+              timers.textContent = `Tempos de download: ${JSON.stringify(jsonData.timers) || ""}`;
+              totalTimer.textContent = `Tempo total de download: ${jsonData.totalTimer || ""} segundos`;
+            }
+          } catch (error) {
+            console.error(error);
+            message.textContent = "Ocorreu um erro ao processar a resposta da API.";
+          }
+
+          // Remove a classe 'loading' do botão para parar a animação de "load"
+          button.classList.remove("loading");
+
+          // Exibe a janela de resultado após um pequeno atraso para garantir que a resposta seja processada corretamente
+          setTimeout(() => {
+            resultContainer.style.display = "block";
+          }, 100);
+        })
+        .catch((error) => {
+          console.error(error);
+          message.textContent = "Ocorreu um erro ao processar a requisição.";
+          resultContainer.style.display = "block";
+
+          // Remove a classe 'loading' do botão em caso de erro
+          button.classList.remove("loading");
+        });
+    }
+  </script>
+</body>
+</html>
