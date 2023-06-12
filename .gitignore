@@ -2,3 +2,6 @@ downloads/
 node_modules
 config.js
 index.txt
+google-private-key.pem
+polyvoices-n8n-project-384902-0f8caa90260f.json
+google-token.js

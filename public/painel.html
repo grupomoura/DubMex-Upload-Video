@@ -1,193 +1,258 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Download de Áudio e Vídeo</title>
-  <style>
-    .button-container button.loading::after {
-      content: "";
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      margin-left: 10px;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      border-top-color: transparent;
-      border-right-color: transparent;
-      animation: spin 0.6s linear infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-    }
-
-    h1 {
-      text-align: center;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-
-    .form-group select {
-      width: 100%;
-      padding: 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-
-    .button-container {
-      text-align: center;
-    }
-
-    .button-container button {
-      padding: 10px 20px;
-      font-size: 14px;
-      background-color: #4caf50;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .result-container {
-      margin-top: 40px;
-      border: 1px solid #ccc;
-      padding: 20px;
-      background-color: #f9f9f9;
-    }
-
-    .result-container h2 {
-      margin-bottom: 10px;
-    }
-
-    .result-container p {
-      margin: 0;
-    }
-  </style>
-</head>
-<body>
-  <h1>Download de Áudio e Vídeo</h1>
-  <div class="container">
-    <div class="form-group">
-      <label for="request-select">Selecione uma requisição:</label>
-      <select id="request-select">
-        <option value="/download/audio">Download de Áudio</option>
-        <option value="/download/playlist-audio">Download de Playlist de Áudio</option>
-        <option value="/download/channel-audio">Download de Canal de Áudio</option>
-        <option value="/download/audio-list">Download de Lista de Áudios</option>
-        <option value="/download/video">Download de Vídeo</option>
-        <option value="/download/playlist-video">Download de Playlist de Vídeo</option>
-        <option value="/download/channel-video">Download de Canal de Vídeo</option>
-        <option value="/download/video-list">Download de Lista de Vídeos</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="link-input">Insira o link do YouTube:</label>
-      <input type="text" id="link-input" placeholder="Link do YouTube" />
-    </div>
-    <div class="button-container">
-      <button onclick="download()">Baixar</button>
-    </div>
-    <div class="result-container" id="result-container">
-      <h2>Resultado</h2>
-      <p id="message"></p>
-      <p id="channelDir"></p>
-      <p id="links"></p>
-      <p id="timers"></p>
-      <p id="totalTimer"></p>
-    </div>
-  </div>
-
-  <script>
-    function download() {
-      const requestSelect = document.getElementById("request-select");
-      const linkInput = document.getElementById("link-input");
-      const resultContainer = document.getElementById("result-container");
-      const message = document.getElementById("message");
-      const channelDir = document.getElementById("channelDir");
-      const links = document.getElementById("links");
-      const timers = document.getElementById("timers");
-      const totalTimer = document.getElementById("totalTimer");
-      const button = document.querySelector("button");
-
-      const selectedRequest = requestSelect.value;
-      const youtubeUrl = linkInput.value.trim();
-
-      if (!youtubeUrl) {
-        message.textContent = "Insira um link do YouTube válido.";
-        resultContainer.style.display = "block";
-        return;
+  <head>
+    <title>YouTube Video Downloader</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
       }
 
-      // Adiciona a classe 'loading' ao botão para mostrar a animação de "load"
-      button.classList.add("loading");
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
 
-      fetch(`http://localhost:5000${selectedRequest}?url=${encodeURIComponent(youtubeUrl)}`, {
-        headers: {
-          'api-key': 'a18d-4348-b06a-a6c120751839-$#212@341&',
-        },
-      })
-        .then((response) => response.text()) // Parse a resposta como texto
-        .then((data) => {
-          try {
-            const jsonData = JSON.parse(data); // Tentar fazer o parsing do JSON
-            if (jsonData.error) {
-              message.textContent = jsonData.error;
-            } else {
-              message.textContent = jsonData.message;
-              channelDir.textContent = `Diretório: ${jsonData.channelDir || ""}`;
-              links.textContent = `Links: ${jsonData.links && jsonData.links.length > 0 ? jsonData.links.join(", ") : ""}`;
-              timers.textContent = `Tempos de download: ${JSON.stringify(jsonData.timers) || ""}`;
-              totalTimer.textContent = `Tempo total de download: ${jsonData.totalTimer || ""} segundos`;
-            }
-          } catch (error) {
-            console.error(error);
-            message.textContent = "Ocorreu um erro ao processar a resposta da API.";
+      h1 {
+        text-align: center;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      select,
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+      }
+
+      .response-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow: auto;
+      }
+
+      .download-button,
+      .delete-button {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      .download-button {
+        background-color: #4caf50;
+        color: #fff;
+      }
+
+      .download-button:hover {
+        background-color: #45a049;
+      }
+
+      .delete-button {
+        background-color: #f44336;
+        color: #fff;
+      }
+
+      .delete-button:hover {
+        background-color: #d32f2f;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>YouTube Video Downloader</h1>
+
+      <div class="form-group">
+        <label for="endpoint">Endpoint:</label>
+        <select id="endpoint">
+          <option value="/download/audio/?url=">Download de Áudio</option>
+          <option value="/download/audio-list/?urls=">
+            Download de Lista de Áudio
+          </option>
+          <option value="/download/channel-audio/?url=">
+            Download de Áudio de Canal
+          </option>
+          <option value="/download/playlist-audio/?url=">
+            Download de Áudio de Playlist
+          </option>
+          <option value="/download/video/?url=">Download de Vídeo</option>
+          <option value="/download/video-list/?urls=">
+            Download de Lista de Vídeo
+          </option>
+          <option value="/download/channel-video/?url=">
+            Download de Vídeo de Canal
+          </option>
+          <option value="/download/playlist-video/?url=">
+            Download de Vídeo de Playlist
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="youtubeUrl">URL do YouTube:</label>
+        <input
+          type="text"
+          id="youtubeUrl"
+          placeholder="Insira a URL do YouTube"
+        />
+      </div>
+
+      <div class="form-group">
+        <a href="javascript:void(0)" class="download-button" onclick="downloadVideo()">
+          Download
+        </a>
+        <a href="javascript:void(0)" class="delete-button" onclick="deleteDownload()">
+          Delete Download
+        </a>
+      </div>
+
+      <div class="response-box"id="responseBox"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      async function downloadVideo() {
+        event.preventDefault();
+
+        const endpoint = document.getElementById("endpoint").value;
+        const youtubeUrl = encodeURIComponent(
+          document.getElementById("youtubeUrl").value
+        );
+
+        // Verificar se o campo de URL está vazio
+        if (youtubeUrl === "") {
+          document.getElementById("responseBox").textContent =
+            "Erro: O campo de URL está vazio.";
+          return;
+        }
+
+        const apiUrl = `${window.location.protocol}//localhost:5000${endpoint}${youtubeUrl}`;
+
+        // Configure headers
+        const headers = {
+          "api-key": "a18d-4348-b06a-a6c120751839-$#212@341&",
+        };
+
+        await axios
+          .get(apiUrl, { headers })
+          .then((response) => {
+            document.getElementById("responseBox").textContent = JSON.stringify(
+              response.data
+            );
+            console.log(response);
+          })
+          .catch((error) => {
+            document.getElementById("responseBox").textContent =
+              "Erro: " + error.message;
+              console.log(error);
+          });
+      }
+
+      async function deleteDownload() {
+        event.preventDefault()
+        // Configure headers
+        const headers = {
+          "api-key": "a18d-4348-b06a-a6c120751839-$#212@341&",
+        };
+
+        try {
+          const response = await axios.get(
+            "http://localhost:5000/list-folders",
+            { headers }
+          );
+          const downloads = response.data.folders;
+
+          if (downloads.length === 0) {
+            document.getElementById("responseBox").textContent =
+              "Erro: Não há downloads disponíveis.";
+            return;
+          } else {
+            document.getElementById("responseBox").innerHTML = `<pre><code>${downloads}</code></pre>`;
           }
 
-          // Remove a classe 'loading' do botão para parar a animação de "load"
-          button.classList.remove("loading");
+          const latestDownloadPath = "downloads/" + downloads[0];
 
-          // Exibe a janela de resultado após um pequeno atraso para garantir que a resposta seja processada corretamente
-          setTimeout(() => {
-            resultContainer.style.display = "block";
-          }, 100);
-        })
-        .catch((error) => {
-          console.error(error);
-          message.textContent = "Ocorreu um erro ao processar a requisição.";
-          resultContainer.style.display = "block";
+          const apiUrl = `${window.location.protocol}//localhost:5000/delete-folder`;
 
-          // Remove a classe 'loading' do botão em caso de erro
-          button.classList.remove("loading");
-        });
-    }
-  </script>
-</body>
+          const deletePayload = {
+            path: latestDownloadPath,
+          };
+
+          const deleteResponse = await axios.delete(apiUrl, {
+            headers,
+            data: deletePayload,
+          });
+
+          document.getElementById("responseBox").textContent = JSON.stringify(
+            downloads[0] +" - "+ deleteResponse.data.message
+          );
+          console.log(deleteResponse);
+        } catch (error) {
+          document.getElementById("responseBox").textContent =
+            "Erro: " + error.message;
+        }
+      }
+
+
+      /**
+       * Method to download video
+      */
+      document.querySelector('#downloadButton').addEventListener('click', async function(event) {
+        event.preventDefault();
+
+        // input Type download
+        const endpoint = document.getElementById("endpoint").value;
+
+        const youtubeUrl = encodeURIComponent(
+          document.getElementById("youtubeUrl").value
+        );
+
+        // Verificar se o campo de URL está vazio
+        if (youtubeUrl === "") {
+          document.getElementById("responseBox").textContent =
+            "Erro: O campo de URL está vazio.";
+          return;
+        }
+
+        const apiUrl = `${window.location.protocol}//localhost:5000${endpoint}${youtubeUrl}`;
+
+        // Configure headers
+        const headers = {
+          "api-key": "a18d-4348-b06a-a6c120751839-$#212@341&",
+        };
+
+        await axios
+          .get(apiUrl, { headers })
+          .then((response) => {
+            console.log(response);
+            document.getElementById("responseBox").textContent = JSON.stringify(
+              response.data
+            );
+          })
+          .catch((error) => {
+            document.getElementById("responseBox").textContent =
+              "Erro: " + error.message;
+              console.log(error);
+          });
+      })
+
+
+    </script>
+  </body>
 </html>

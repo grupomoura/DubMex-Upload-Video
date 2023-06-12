@@ -31,7 +31,7 @@ playlist_audio.get('/download/playlist-audio', authenticate, async (req, res) =>
 
       if (fs.existsSync(filePath)) {
         console.log(`O áudio "${videoId}" já foi baixado.`);
-        return filePath;
+        return [filePath, 0]; // Retorna um array com o caminho do arquivo e o timer zerado
       }
 
       const info = await ytdl.getInfo(item.url);
@@ -58,7 +58,7 @@ playlist_audio.get('/download/playlist-audio', authenticate, async (req, res) =>
           const timer = (endTime - startTime) / 1000; // Calcula o tempo do download em segundos
 
           console.log(`Áudio "${videoId}" baixado com sucesso!`);
-          resolve(filePath, timer);
+          resolve({ filePath, timer }); // Retorna um objeto com o filePath e o timer
         });
 
         writeStream.on('error', (error) => {
@@ -69,15 +69,15 @@ playlist_audio.get('/download/playlist-audio', authenticate, async (req, res) =>
     });
 
     const downloadedFilesWithTimers = await Promise.all(downloadPromises);
-    const existingFiles = downloadedFilesWithTimers.filter(([filePath, timer]) => filePath);
-    const links = existingFiles.map(([filePath, timer]) => {
+    const existingFiles = downloadedFilesWithTimers.filter(({ filePath }) => filePath);
+    const links = existingFiles.map(({ filePath }) => {
       const fileName = filePath.split('/').pop();
       return `${req.protocol}://${req.get('host')}/download/playlist/${sanitizedChannelName}/${fileName}`;
     });
 
-    const timers = existingFiles.map(([filePath, timer]) => ({
-      filePath: filePath,
-      timer: timer
+    const timers = existingFiles.map(({ filePath, timer }) => ({
+      filePath,
+      timer
     }));
 
     const totalTimer = timers.reduce((total, { timer }) => total + timer, 0);
@@ -87,7 +87,7 @@ playlist_audio.get('/download/playlist-audio', authenticate, async (req, res) =>
       channelDir: channelDir,
       links: links,
       timers: timers,
-      totalTimer: totalTimer
+      totalTimer: totalTimer || 0 // Se totalTimer for falso ou indefinido, define como 0
     });
   } catch (error) {
     console.error('Ocorreu um erro ao processar a playlist:', error);

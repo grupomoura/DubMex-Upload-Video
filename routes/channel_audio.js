@@ -60,8 +60,8 @@ channel_audio.get('/download/channel-audio', authenticate, async (req, res) => {
           const timer = (endTime - startTime) / 1000; // Calcula o tempo do download em segundos
 
           timers.push({
-            videoId: videoId,
-            timer: timer
+            videoId,
+            timer
           });
 
           totalTimer += timer;
@@ -86,10 +86,10 @@ channel_audio.get('/download/channel-audio', authenticate, async (req, res) => {
 
     res.status(200).json({
       message: `Áudios do canal "${sanitizedChannelName}" baixados com sucesso!`,
-      channelDir: channelDir,
-      links: links,
-      timers: timers,
-      totalTimer: totalTimer
+      channelDir,
+      links,
+      timers,
+      totalTimer: totalTimer || 0 // Se totalTimer for falso ou indefinido, define como 0
     });
   } catch (error) {
     console.error('Ocorreu um erro ao processar o canal:', error);
