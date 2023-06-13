@@ -75,22 +75,30 @@ const doesFileExistInDrive = async (parentFolderId, fileName) => {
   const response = await drive.files.list({
     q: `'${parentFolderId}' in parents and name = '${fileName}' and trashed = false`,
     fields: 'files(id)'
-  }).then(res => {
-    console.log(res)
-    return res.data.files.length > 0;
   });
+
+  return response.data.files.length > 0;
 };
 
 const doesFolderExistInDrive = async (parentFolderId, folderName) => {
   const drive = google.drive({ version: 'v3', auth: jwtClient });
-
-  await drive.files.list({
-    q: `name = 'audio' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+  const response = await drive.files.list({
+    q: `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '${parentFolderId}' in parents`,
     fields: 'files(id)'
-  }).then(res => {
-    console.log(res.data.files.length > 0)
-    return res.data.files.length > 0;
   });
+
+  return response.data.files.length > 0;
+};
+
+const doesChannelFolderExistInDrive = async (parentFolderId, channelName) => {
+  const drive = google.drive({ version: 'v3', auth: jwtClient });
+
+  const response = await drive.files.list({
+    q: `name = '${channelName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '${parentFolderId}' in parents`,
+    fields: 'files(id)'
+  });
+
+  return response.data.files.length > 0;
 };
 
 audio.get('/download/audio', authenticate, async (req, res) => {
@@ -114,7 +122,7 @@ audio.get('/download/audio', authenticate, async (req, res) => {
     }
   }
 
-  const videoTitle = info.videoDetails.title.substring(0, 15).replace(/[^\w\s]/gi, '');
+  const videoTitle = info.videoDetails.title.substring(0, 20).replace(/[^\w\s]/gi, '');
   const fileName = `${videoTitle}_${info.videoDetails.videoId}.mp3`;
   const channelName = info.videoDetails.author.name;
   const sanitizedChannelName = channelName.replace(/[^\w\s]/gi, '');
@@ -148,46 +156,58 @@ audio.get('/download/audio', authenticate, async (req, res) => {
 
   videoStream.pipe(writeStream);
 
-  writeStream.on('finish', async () => {
-    let endTime = Date.now();
-    let totalTime = (endTime - startTime) / 1000;
+  let endTime = Date.now();
+  let totalTime = (endTime - startTime) / 1000;
 
-    await authorize();
+  await authorize();
 
-    const endpointFolderId = await createFolder('audio', '1uYZw762ZML0WmSz6IiLtm6m793_7bYaB');
+  const endpointFolderId = '1uYZw762ZML0WmSz6IiLtm6m793_7bYaB';
 
-    let channelFolderId;
-    if (await doesFolderExistInDrive(endpointFolderId, 'audio')) {
-      google.drive({ version: 'v3', auth: jwtClient }).files.list({
-        q: `'name = 'audio' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-        fields: 'files(id)'
-      })
-    } else {
-      channelFolderId = await createFolder('audio', endpointFolderId);
-    }
+  let channelFolderId;
+  if (!(await doesFolderExistInDrive(endpointFolderId, 'audio'))) {
+    channelFolderId = await createFolder('audio', endpointFolderId);
+  } else {
+    const drive = google.drive({ version: 'v3', auth: jwtClient });
+    const response = await drive.files.list({
+      q: `name = 'audio' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '${endpointFolderId}' in parents`,
+      fields: 'files(id)'
+    });
+    channelFolderId = response.data.files[0].id;
+  }
 
-    if (await doesFileExistInDrive(channelFolderId, fileName)) {
-      // Exclui o arquivo local
-      fs.unlinkSync(filePath);
+  let channelSubFolderId;
+  if (!(await doesChannelFolderExistInDrive(channelFolderId, sanitizedChannelName))) {
+    channelSubFolderId = await createFolder(sanitizedChannelName, channelFolderId);
+  } else {
+    const drive = google.drive({ version: 'v3', auth: jwtClient });
+    const response = await drive.files.list({
+      q: `name = '${sanitizedChannelName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '${channelFolderId}' in parents`,
+      fields: 'files(id)'
+    });
+    channelSubFolderId = response.data.files[0].id;
+  }
 
-      return res.status(200).json({
-        message: 'O áudio já foi baixado.',
-        downloadUrl: await getFolderLink(endpointFolderId)
-      });
-    }
-
-    const fileId = await uploadFileToDrive(filePath, fileName, channelFolderId);
-    const folderLink = await getFolderLink(endpointFolderId);
-
+  if (await doesFileExistInDrive(channelSubFolderId, fileName)) {
     // Exclui o arquivo local
     fs.unlinkSync(filePath);
 
-    res.status(200).json({
-      message: 'Áudio baixado e enviado para o Google Drive com sucesso!',
-      downloadUrl: folderLink,
-      timer: totalTime,
-      fileId: fileId
+    return res.status(200).json({
+      message: 'O áudio já foi baixado.',
+      downloadUrl: await getFolderLink(endpointFolderId)
     });
+  }
+
+  const fileId = await uploadFileToDrive(filePath, fileName, channelSubFolderId);
+  const folderLink = await getFolderLink(endpointFolderId);
+
+  // Exclui o arquivo local
+  fs.unlinkSync(filePath);
+
+  res.status(200).json({
+    message: 'Áudio baixado e enviado para o Google Drive com sucesso!',
+    downloadUrl: folderLink,
+    timer: totalTime,
+    fileId: fileId
   });
 });
 
