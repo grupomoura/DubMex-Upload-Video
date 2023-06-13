@@ -58,10 +58,27 @@
       .download-button {
         background-color: #4caf50;
         color: #fff;
+        position: relative;
+        overflow: hidden;
       }
 
-      .download-button:hover {
-        background-color: #45a049;
+      .download-button::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        border-top-color: transparent;
+        animation: spin 1s infinite linear;
+        opacity: 0;
+      }
+
+      .download-button.loading::after {
+        opacity: 1;
       }
 
       .delete-button {
@@ -71,6 +88,15 @@
 
       .delete-button:hover {
         background-color: #d32f2f;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: translate(-50%, -50%) rotate(0deg);
+        }
+        100% {
+          transform: translate(-50%, -50%) rotate(360deg);
+        }
       }
     </style>
   </head>
@@ -115,14 +141,14 @@
 
       <div class="form-group">
         <a href="javascript:void(0)" class="download-button" onclick="downloadVideo()">
-          Download
+          Enviar pedido
         </a>
-        <a href="javascript:void(0)" class="delete-button" onclick="deleteDownload()">
+        <!-- <a href="javascript:void(0)" class="delete-button" onclick="deleteDownload()">
           Delete Download
-        </a>
+        </a> -->
       </div>
 
-      <div class="response-box"id="responseBox"></div>
+      <div class="response-box" id="responseBox"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -149,23 +175,27 @@
           "api-key": "a18d-4348-b06a-a6c120751839-$#212@341&",
         };
 
-        await axios
-          .get(apiUrl, { headers })
-          .then((response) => {
-            document.getElementById("responseBox").textContent = JSON.stringify(
-              response.data
-            );
-            console.log(response);
-          })
-          .catch((error) => {
-            document.getElementById("responseBox").textContent =
-              "Erro: " + error.message;
-              console.log(error);
-          });
+        const button = document.querySelector(".download-button");
+        button.classList.add("loading");
+        document.getElementById("responseBox").textContent = "Processando pedido...";
+
+        try {
+          const response = await axios.get(apiUrl, { headers });
+          document.getElementById("responseBox").textContent = JSON.stringify(
+            response.data
+          );
+          console.log(response);
+        } catch (error) {
+          document.getElementById("responseBox").textContent =
+            "Erro: " + error.message;
+          console.log(error);
+        } finally {
+          button.classList.remove("loading");
+        }
       }
 
       async function deleteDownload() {
-        event.preventDefault()
+        event.preventDefault();
         // Configure headers
         const headers = {
           "api-key": "a18d-4348-b06a-a6c120751839-$#212@341&",
@@ -200,7 +230,7 @@
           });
 
           document.getElementById("responseBox").textContent = JSON.stringify(
-            downloads[0] +" - "+ deleteResponse.data.message
+            downloads[0] + " - " + deleteResponse.data.message
           );
           console.log(deleteResponse);
         } catch (error) {
@@ -208,51 +238,6 @@
             "Erro: " + error.message;
         }
       }
-
-
-      /**
-       * Method to download video
-      */
-      document.querySelector('#downloadButton').addEventListener('click', async function(event) {
-        event.preventDefault();
-
-        // input Type download
-        const endpoint = document.getElementById("endpoint").value;
-
-        const youtubeUrl = encodeURIComponent(
-          document.getElementById("youtubeUrl").value
-        );
-
-        // Verificar se o campo de URL está vazio
-        if (youtubeUrl === "") {
-          document.getElementById("responseBox").textContent =
-            "Erro: O campo de URL está vazio.";
-          return;
-        }
-
-        const apiUrl = `${window.location.protocol}//localhost:5000${endpoint}${youtubeUrl}`;
-
-        // Configure headers
-        const headers = {
-          "api-key": "a18d-4348-b06a-a6c120751839-$#212@341&",
-        };
-
-        await axios
-          .get(apiUrl, { headers })
-          .then((response) => {
-            console.log(response);
-            document.getElementById("responseBox").textContent = JSON.stringify(
-              response.data
-            );
-          })
-          .catch((error) => {
-            document.getElementById("responseBox").textContent =
-              "Erro: " + error.message;
-              console.log(error);
-          });
-      })
-
-
     </script>
   </body>
 </html>
