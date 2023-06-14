@@ -110,8 +110,8 @@ channel_audio.get('/download/channel-audio', authenticate, async (req, res) => {
   //   });
   // }
 
-  const playlist = await ytpl(youtubeUrl);
-  const videos = playlist.items;
+  const channelUrls = await ytpl(youtubeUrl);
+  const videos = channelUrls.items;
 
   const basePath = path.join(__dirname, '../downloads/channel-audio');
   const endpointFolderName = req.baseUrl.substring(1);
@@ -215,7 +215,6 @@ channel_audio.get('/download/channel-audio', authenticate, async (req, res) => {
   }
 
   const endpointFolderId = '1uYZw762ZML0WmSz6IiLtm6m793_7bYaB';
-
 
   const folderLink = await getFolderLink(endpointFolderId);
 
