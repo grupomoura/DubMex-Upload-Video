@@ -6,6 +6,7 @@ const ytsr = require('ytsr');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
+const { resolveTxt } = require("dns/promises");
 
 const app = express();
 app.use('/download', express.static('downloads'));
@@ -42,7 +43,7 @@ const uploadFileToDrive = async (filePath, fileName, parentFolderId) => {
   };
 
   const media = {
-    mimeType: 'audio/mp3',
+    mimeType: 'video/mp4',
     body: fs.createReadStream(filePath)
   };
 
@@ -83,7 +84,7 @@ const doesFileExistInDrive = async (parentFolderId, fileName) => {
 const doesFolderExistInDrive = async (parentFolderId, folderName) => {
   const drive = google.drive({ version: 'v3', auth: jwtClient });
   const response = await drive.files.list({
-    q: `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '${parentFolderId}' in parents`,
+    q: `name = 'channel_video' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
     fields: 'files(id)'
   });
 
@@ -94,7 +95,7 @@ const doesChannelFolderExistInDrive = async (parentFolderId, channelName) => {
   const drive = google.drive({ version: 'v3', auth: jwtClient });
 
   const response = await drive.files.list({
-    q: `name = '${channelName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '${parentFolderId}' in parents`,
+    q: `name = '${channelName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
     fields: 'files(id)'
   });
 
@@ -126,8 +127,17 @@ channel_video.get('/download/channel-video', authenticate, async (req, res) => {
     }
 
     const info = await ytdl.getInfo(videoUrl);
-    const formats = ytdl.filterFormats(info.formats, 'videoonly');
-    const selectedFormat = selectVideoFormat(formats);
+    let format = ytdl.filterFormats(info.formats, 'videoandaudio').find(format => format.qualityLabel === 720);
+
+    if (!format) {
+      format = ytdl.filterFormats(info.formats, 'videoandaudio').find(format => format.height);
+      if (!format) {
+        console.error(`Não foi possível encontrar um formato de áudio com 64kbps ou 128kbps para o vídeo: ${videoUrl}`);
+        continue;
+      }
+    }
+    console.log(formats)
+    // const selectedFormat = selectVideoFormat(formats);
 
     if (!selectedFormat) {
       console.error(`Não foi possível encontrar um formato de vídeo adequado para o vídeo: ${videoUrl}`);
@@ -205,28 +215,22 @@ channel_video.get('/download/channel-video', authenticate, async (req, res) => {
 
     const fileId = await uploadFileToDrive(filePath, fileName, channelSubFolderId);
 
-    // Exclui o arquivo local
-    fs.unlinkSync(filePath);
-
     const fileLink = await getFolderLink(channelSubFolderId);
 
-    res.status(200).json({
-      message: 'Todos os vídeos foram baixados e enviados para o Google Drive com sucesso!',
-      downloadUrl: fileLink,
-      totalTime: totalTime
-    });
+    console.log(`Vídeo baixado e enviado para o Google Drive: ${videoUrl}`);
+    console.log(`Link do arquivo: ${fileLink}`);
   }
-});
 
-function selectVideoFormat(formats) {
-  const targetResolution = '720p';
+  console.log(`Tempo total de download: ${totalTime.toFixed(2)} segundos`);
 
-  const targetFormat = formats.find((format) => {
-    const resolution = format.height ? `${format.height}p` : 'Video';
-    return resolution <= targetResolution;
+  const endpointFolderId = '1uYZw762ZML0WmSz6IiLtm6m793_7bYaB';
+  const folderLink = await getFolderLink(endpointFolderId);
+
+  res.status(200).json({
+    message: 'Todos os vídeos foram baixados e enviados para o Google Drive com sucesso!',
+    downloadUrl: folderLink,
+    totalTime: totalTime.toFixed(2)
   });
-
-  return targetFormat || formats[0];
-}
+});
 
 module.exports = channel_video;
