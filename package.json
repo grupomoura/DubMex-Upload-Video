@@ -7,7 +7,6 @@
     "node": "18.x"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node devServer.js",
     "dev": "nodemon devServer.js"
   },
@@ -15,6 +14,7 @@
   "author": "James Moura",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^10.0.0",
     "archiver": "^5.3.1",
     "axios": "^1.4.0",
     "cors": "^2.8.5",
