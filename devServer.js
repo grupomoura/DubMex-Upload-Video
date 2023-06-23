@@ -1,5 +1,5 @@
 require('dotenv').config();
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 8082
 const app = require("./app");
 const routes = require("./src/routes/router");
 const express = require('express');
@@ -14,5 +14,5 @@ app.use(express.json());
 
 //start server locally
 app.listen(port,function () {
-    console.log("Server started. Go to http://localhost:/"+port);
+    console.log("Server started. Go to http://localhost:"+port);
 });
