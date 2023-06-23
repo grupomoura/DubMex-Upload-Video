@@ -3,9 +3,9 @@ const app = require("./app");
 const routes = require("./src/routes/router");
 const express = require('express');
 const bodyParser = require('body-parser');
+const port = process.env.PORT || 3000
+
 app.use(bodyParser.json());
-
-
 app.use("/", routes);
 
 app.use('/download', express.static('downloads'));
@@ -13,6 +13,6 @@ app.use('/download', express.static('downloads'));
 app.use(express.json());
 
 //start server locally
-app.listen(3000,function () {
+app.listen(port,function () {
     console.log("Server started. Go to http://localhost:3000/");
 });
