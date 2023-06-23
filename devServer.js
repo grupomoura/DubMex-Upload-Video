@@ -2,7 +2,9 @@ const app = require("./app");
 const routes = require("./src/routes/router");
 const express = require('express');
 const bodyParser = require('body-parser');
+const dotenv = require('dotenv').config();
 app.use(bodyParser.json());
+
 
 app.use("/", routes);
 
