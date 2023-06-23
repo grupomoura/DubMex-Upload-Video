@@ -58,27 +58,10 @@
       .download-button {
         background-color: #4caf50;
         color: #fff;
-        position: relative;
-        overflow: hidden;
       }
 
-      .download-button::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 15px;
-        height: 15px;
-        border-radius: 50%;
-        border: 2px solid #fff;
-        border-top-color: transparent;
-        animation: spin 1s infinite linear;
-        opacity: 0;
-      }
-
-      .download-button.loading::after {
-        opacity: 1;
+      .download-button:hover {
+        background-color: #45a049;
       }
 
       .delete-button {
@@ -90,12 +73,26 @@
         background-color: #d32f2f;
       }
 
-      @keyframes spin {
+      /* Estilo da animação */
+      .loading::after {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-left: 5px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        border-color: #fff transparent #fff transparent;
+        animation: loadingAnimation 1s linear infinite;
+      }
+
+      /* Animação */
+      @keyframes loadingAnimation {
         0% {
-          transform: translate(-50%, -50%) rotate(0deg);
+          transform: rotate(0deg);
         }
         100% {
-          transform: translate(-50%, -50%) rotate(360deg);
+          transform: rotate(360deg);
         }
       }
     </style>
