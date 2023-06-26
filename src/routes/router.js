@@ -4,7 +4,7 @@ const routes = require("express").Router();
 const path = require('path');
 const fs = require('fs');
 
-const audio_gallery = require("./audio_gallery");
+const audio_upload_gallery = require("./audio_upload_gallery");
 const delete_folder = require("./delete_folder");
 const list_folders = require("./list_folders");
 
@@ -34,7 +34,7 @@ routes.get('/painel', (req, res) => {
   });
 });
 
-routes.use("/", audio_gallery);
+routes.use("/", audio_upload_gallery);
 routes.use("/", delete_folder);
 routes.use("/", list_folders);
 
