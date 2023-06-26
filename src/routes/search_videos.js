@@ -11,7 +11,7 @@ const app = express();
 app.use('/download', express.static('downloads'));
 const searsh_videos = require("express").Router();
 
-searsh_videos.get('/searsh-videos', authenticate, async (req, res) => {
+searsh_videos.get('/search-videos', authenticate, async (req, res) => {
     const query = req.query.q;
   
     try {
