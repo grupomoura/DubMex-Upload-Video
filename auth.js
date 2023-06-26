@@ -1,5 +1,4 @@
-const apiKey = require('./config');
-
+const apiKey = process.env.apiKey;
 const API_KEY = apiKey;
 
 // Middleware de autenticação

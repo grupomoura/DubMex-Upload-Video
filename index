@@ -6,7 +6,7 @@ const fs = require('fs');
 const app = express();
 
 const path = require('path');
-const apiKey = require('./config');
+const apiKey = process.env.apiKey;
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
