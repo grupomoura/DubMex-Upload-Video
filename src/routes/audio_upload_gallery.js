@@ -8,6 +8,7 @@ const { google } = require('googleapis');
 const app = express();
 app.use('/download', express.static('downloads'));
 const video_gallery = require("express").Router();
+const parentFolderId = ['1yys0zzt9DnRthFpecEy66Sk1wjwsZ5hI'];
 
 video_gallery.get('/download/video-gallery', async (req, res) => {
   const videoUrl = req.query.url;
@@ -20,12 +21,11 @@ video_gallery.get('/download/video-gallery', async (req, res) => {
   }
 
   // Função para extrair o áudio do vídeo
-  const extractAudio = async (videoPath) => {
+  const extractAudio = async (videoPath, videoFileName) => {
     try {
-      // Definir o caminho e nome do arquivo de áudio com base na URL do vídeo
-      const videoFileName = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
+      // Definir o caminho e nome do arquivo de áudio com base no nome do vídeo
       const audioFileName = videoFileName.replace(/\.[^/.]+$/, "") + '.mp3';
-      const audioFilePath = path.join(__dirname, '../downloads/audio_gallery', audioFileName);
+      const audioFilePath = path.join(__dirname, '../temp', audioFileName);
 
       // Verificar se o arquivo de áudio já foi baixado
       if (fs.existsSync(audioFilePath)) {
@@ -52,6 +52,7 @@ video_gallery.get('/download/video-gallery', async (req, res) => {
 
         // Remover o arquivo de vídeo original
         fs.unlinkSync(videoPath);
+        
 
         // Enviar o áudio para o Google Drive
         uploadAudioToDrive(audioFilePath, audioFileName)
@@ -59,7 +60,7 @@ video_gallery.get('/download/video-gallery', async (req, res) => {
             res.status(200).json({
               message: 'Áudio extraído com sucesso!',
               driveFileId: driveFileId,
-              downloadUrl: `${req.protocol}://${req.get('host')}/download/video_gallery/${audioFileName}`
+              downloadUrl: `https://drive.google.com/uc?export=download&id=${driveFileId}`,
             });
           })
           .catch((error) => {
@@ -78,8 +79,8 @@ video_gallery.get('/download/video-gallery', async (req, res) => {
   };
 
   // Definir o nome do arquivo de vídeo
-  const videoFileName = 'video.mp4';
-  const videoFilePath = path.join(__dirname, '../downloads', videoFileName);
+  const videoFileName = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
+  const videoFilePath = path.join(__dirname, '../temp', videoFileName);
 
   // Fazer o download do vídeo para o servidor
   try {
@@ -92,7 +93,7 @@ video_gallery.get('/download/video-gallery', async (req, res) => {
     response.data.pipe(fs.createWriteStream(videoFilePath));
 
     response.data.on('end', () => {
-      extractAudio(videoFilePath);
+      extractAudio(videoFilePath, videoFileName);
     });
   } catch (error) {
     console.error(error);
@@ -116,7 +117,7 @@ const uploadAudioToDrive = async (audioFilePath, audioFileName) => {
 
     // Verificar se o arquivo já existe no Google Drive
     const fileList = await drive.files.list({
-      q: `name = '${audioFileName}'`,
+      q: `'${parentFolderId}' in parents and name = '${audioFileName}' and trashed = false`,
       spaces: 'drive',
       fields: 'files(id, name)',
       pageSize: 1
@@ -131,13 +132,16 @@ const uploadAudioToDrive = async (audioFilePath, audioFileName) => {
     const response = await drive.files.create({
       requestBody: {
         name: audioFileName,
-        parents: ['1xfIYzchSO7Ijh1D-FpeH1XX7cP4AtiXG'] // Substitua 'YOUR_FOLDER_ID' pelo ID da pasta no Google Drive
+        parents: parentFolderId
       },
       media: {
         mimeType: 'audio/mp3',
         body: fs.createReadStream(audioFilePath)
       }
     });
+
+    // Excluir o arquivo .mp3 local
+    fs.unlinkSync(audioFilePath);
 
     return response.data.id;
   } catch (error) {
