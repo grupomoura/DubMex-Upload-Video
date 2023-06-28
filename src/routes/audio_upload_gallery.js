@@ -20,12 +20,18 @@ video_gallery.get('/download/video-gallery', async (req, res) => {
     });
   }
 
+  // Função para verificar e criar a pasta "temp" se não existir
+  const tempFolderPath = path.join(__dirname, '../temp');
+    if (!fs.existsSync(tempFolderPath)) {
+    fs.mkdirSync(tempFolderPath);
+  }
+
   // Função para extrair o áudio do vídeo
   const extractAudio = async (videoPath, videoFileName) => {
     try {
       // Definir o caminho e nome do arquivo de áudio com base no nome do vídeo
       const audioFileName = videoFileName.replace(/\.[^/.]+$/, "") + '.mp3';
-      const audioFilePath = path.join(__dirname, '../temp', audioFileName);
+      const audioFilePath = path.join(tempFolderPath, audioFileName);
 
       // Verificar se o arquivo de áudio já foi baixado
       if (fs.existsSync(audioFilePath)) {
@@ -80,7 +86,7 @@ video_gallery.get('/download/video-gallery', async (req, res) => {
 
   // Definir o nome do arquivo de vídeo
   const videoFileName = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
-  const videoFilePath = path.join(__dirname, '../temp', videoFileName);
+  const videoFilePath = path.join(tempFolderPath, videoFileName);
 
   // Fazer o download do vídeo para o servidor
   try {
